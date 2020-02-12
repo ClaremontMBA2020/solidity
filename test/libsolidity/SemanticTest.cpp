@@ -143,13 +143,22 @@ TestCase::TestResult SemanticTest::run(ostream& _stream, string const& _linePref
 			}
 			else
 			{
-				bytes output = test.call().useCallWithoutSignature ?
-					callLowLevel(test.call().arguments.rawBytes(), test.call().value) :
-					callContractFunctionWithValueNoEncoding(
+				bytes output;
+				if (test.call().useCallWithoutSignature)
+					output = callLowLevel(test.call().arguments.rawBytes(), test.call().value);
+				else
+				{
+					if (!m_compiler.methodIdentifiers(m_compiler.lastContractName()).isMember(test.call().signature))
+					{
+						test.calledNonExistingFunction();
+						success = false;
+					}
+					output = callContractFunctionWithValueNoEncoding(
 						test.call().signature,
 						test.call().value,
 						test.call().arguments.rawBytes()
 					);
+				}
 
 				if ((m_transactionSuccessful == test.call().expectations.failure) || (output != test.call().expectations.rawBytes()))
 					success = false;
